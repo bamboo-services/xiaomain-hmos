@@ -1,0 +1,41 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/xiaofeng/.ohos/config/auto_debug_XiaoMain_com.xlf.xiaomain_10086000142690468.cer",
+          "storePassword": "0000001AAFE67FAC60BBDCA3440F06CA80A2AD98D526F8785C77DC76817E863C2CAAEB01393673BEB283",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A8582BD9148922469FD4B606706F687002E7A693693C3C1584F56E07B6B8DCEDA6E29D6FD66C1",
+          "profile": "/Users/xiaofeng/.ohos/config/auto_debug_XiaoMain_com.xlf.xiaomain_10086000142690468.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/xiaofeng/.ohos/config/auto_debug_XiaoMain_com.xlf.xiaomain_10086000142690468.p12"
+        }
+      }
+    ],
+    "compileSdkVersion": 9,
+    "compatibleSdkVersion": 9,
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
