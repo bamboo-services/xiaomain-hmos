@@ -1,13 +1,25 @@
 import UIAbility from '@ohos.app.ability.UIAbility';
+import distributedKVStore from '@ohos.data.distributedKVStore';
 import hilog from '@ohos.hilog';
 import window from '@ohos.window';
 import { CommonConst } from '../constants/CommonConst';
-
 
 export default class EntryAbility extends UIAbility {
   onCreate(want, launchParam) {
     // 系统初始化时，创建Ability
     PersistentStorage.PersistProp<Boolean>('userHasLogin', false);
+    CommonConst.KV_MANAGER_CONFIG = {
+      context: this.context,
+      bundleName: 'com.xlf.xiaomain'
+    };
+    try {
+      // 创建KVManager实例
+      CommonConst.KV_MANAGER = distributedKVStore.createKVManager(CommonConst.KV_MANAGER_CONFIG)
+      console.info('Succeeded in creating KVManager.');
+      // 继续创建获取数据库
+    } catch (e) {
+      console.error(`Failed to create KVManager. Code:${e.code},message:${e.message}`);
+    }
     hilog.info(0x5000, 'XiaoMainLog', '%{public}s', 'Ability 已创建');
   }
 
@@ -25,14 +37,29 @@ export default class EntryAbility extends UIAbility {
       const statusBarHeight = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height
       CommonConst.STATUS_BAR_HEIGHT = statusBarHeight;
     })
+    // 变量赋予操作
+    CommonConst.KV_MANAGER.getKVStore('globalStorage', CommonConst.KV_CONFIG, (_, kvStore) => {
+      const store = kvStore as distributedKVStore.SingleKVStore;
+      try {
+        store.get('serverUrl', (_, value) => {
+          AppStorage.SetOrCreate<string>('serverUrl', value as string);
+          hilog.info(0x5000, 'XiaoMainLog', '获取服务器地址：%{public}s', AppStorage.Get<string>('serverUrl'));
+        });
+      } catch (e) {
+        console.error(`Failed to get serverUrl. Code:${e.code},message:${e.message}`);
+      }
+    });
 
-    if (AppStorage.Get<Boolean>('userHasLogin')) {
-      hilog.info(0x5000, 'XiaoMainLog', '用户已登录，加载主页')
-      windowStage.loadContent('pages/HomePage');
-    } else {
-      hilog.info(0x5000, 'XiaoMainLog', '用户未登录，加载登录页')
-      windowStage.loadContent('pages/UserLoginPage');
-    }
+    setTimeout(() => {
+      // 地址跳转
+      if (AppStorage.Get<Boolean>('userHasLogin')) {
+        hilog.info(0x5000, 'XiaoMainLog', '用户已登录，加载主页')
+        windowStage.loadContent('pages/HomePage');
+      } else {
+        hilog.info(0x5000, 'XiaoMainLog', '用户未登录，加载登录页')
+        windowStage.loadContent('pages/UserLoginPage');
+      }
+    }, 100);
   }
 
   onWindowStageDestroy() {

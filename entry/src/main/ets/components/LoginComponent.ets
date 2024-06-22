@@ -14,7 +14,7 @@ export function InputLabel(textInfo: string, isNeed: boolean, placeholder, handl
       }
     }.margin({ bottom: vp2px(5) })
 
-    TextInput({ placeholder: placeholder })
+    TextInput({ placeholder: placeholder, text: AppStorage.Get<string>(handler) })
       .height(vp2px(30))
       .type(inputType)
       .borderRadius(vp2px(11))

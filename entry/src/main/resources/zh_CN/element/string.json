@@ -10,7 +10,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "竹叶"
     },
     {
       "name": "SystemInfoAbility_desc",
@@ -27,6 +27,10 @@
     {
       "name": "EntryFormAbility_label",
       "value": "form_label"
+    },
+    {
+      "name": "permission_reason_internet",
+      "value": "用于互联网交际传输是用，对接服务使用"
     }
   ]
 }
