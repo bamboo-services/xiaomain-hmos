@@ -3,6 +3,7 @@ import { InputLabel } from '../components/LoginComponent';
 import hilog from '@ohos.hilog';
 import http from '@ohos.net.http';
 import distributedKVStore from '@ohos.data.distributedKVStore';
+import router from '@ohos.router';
 
 @Entry
 @Component
@@ -19,7 +20,7 @@ export struct UserLoginPage {
     Column() {
       GridRow({ gutter: vp2px(15) }) {
         GridCol({ span: 12 }) {
-          Text('筱主页终端').fontSize(vp2px(25)).fontWeight(FontWeight.Bold);
+          Text('竹叶终端').fontSize(vp2px(25)).fontWeight(FontWeight.Bold);
         }.padding({ bottom: 50 })
 
         GridCol({ span: 12 }) {
@@ -50,17 +51,16 @@ export struct UserLoginPage {
                   // 地址持久化存储
                   CommonConst.KV_MANAGER.getKVStore('globalStorage', CommonConst.KV_CONFIG, (_, kvStore) => {
                     const store = kvStore as distributedKVStore.SingleKVStore;
-                    store.put('serverUrl', AppStorage.Get<string>('serverUrl'), (err) => {
-                      if (err) {
-                        hilog.error(0x5000, "XiaoMainLog", "持久化存储失败 %{public}s", err.message);
-                      } else {
-                        hilog.info(0x5000, "XiaoMainLog", "持久化存储成功 %{public}s", "serverUrl");
-                      }
-                    });
+                    store.put('serverUrl', AppStorage.Get<string>('serverUrl'));
                   })
                   hilog.info(0x5000, "XiaoMainLog", "登录成功");
-                  AppStorage.Delete('loginErrorMessage');
-                  submitLogin();
+                  if (await submitLogin()) {
+                    // 跳转页面
+                    AppStorage.Delete('loginErrorMessage');
+                    router.replaceUrl({ url: 'pages/HomePage' });
+                  } else {
+                    this.dialogController.open()
+                  }
                 } else {
                   setTimeout(() => {
                     this.dialogController.open()
@@ -107,6 +107,7 @@ struct ErrorDialog {
           .padding(vp2px(5))
           .fontColor(Color.Gray)
           .onClick(() => {
+            AppStorage.Delete('loginErrorMessage');
             this.controller.close()
           });
       }.margin({ top: vp2px(5) })
@@ -158,7 +159,6 @@ async function checkLinkAbleUse(): Promise<boolean> {
     expectDataType: http.HttpDataType.STRING,
     usingCache: false,
   }).then((response) => {
-    hilog.info(0x5000, "XiaoMainLog", "Response: %{public}s", response.result.toString());
     const getJson = JSON.parse(response.result.toString());
     hilog.info(0x5000, "XiaoMainLog", "%{public}s", getJson);
     if (getJson.output !== "Success") {
@@ -171,16 +171,52 @@ async function checkLinkAbleUse(): Promise<boolean> {
     hilog.info(0x5000, "XiaoMainLog", "%{public}s", AppStorage.Get<string>('loginErrorMessage'));
     hilog.warn(0x5000, "XiaoMainLog", "Error: %{public}s", error.message);
   });
+  httpRequest.destroy();
   if (AppStorage.Get<string>('loginErrorMessage') !== undefined) {
     if (AppStorage.Get<string>('loginErrorMessage') === "") {
       hilog.info(0x5000, "XiaoMainLog", "未知错误");
     }
     return false;
   } else {
+    AppStorage.Delete('loginErrorMessage');
     return true;
   }
 }
 
-function submitLogin() {
+async function submitLogin(): Promise<boolean> {
+  // 发送请求
+  const httpRequest = http.createHttp();
+  const getRes = await httpRequest.request(AppStorage.Get<string>('serverUrl') + '/api/v1/user/login', {
+    method: http.RequestMethod.POST,
+    header: {
+      'Content-Type': 'application/json',
+    },
+    extraData: {
+      'user': AppStorage.Get<string>('username'),
+      'pass': AppStorage.Get<string>('password'),
+      'remember': true
+    },
+    expectDataType: http.HttpDataType.STRING,
+    usingCache: false,
+  });
+  httpRequest.destroy();
 
+  const getJson = JSON.parse(getRes.result.toString());
+  hilog.info(0x5000, "XiaoMainLog", "%{public}s", getJson);
+  if (getJson.output !== "Success") {
+    AppStorage.SetOrCreate<string>('loginErrorMessage', getJson.error_message);
+    hilog.info(0x5000, "XiaoMainLog", "%{public}s", AppStorage.Get<string>('loginErrorMessage'));
+    return false;
+  } else {
+    // 存储登录必要信息
+    CommonConst.KV_MANAGER.getKVStore('globalStorage', CommonConst.KV_CONFIG, (_, kvStore) => {
+      const store = kvStore as distributedKVStore.SingleKVStore;
+      store.put('userToken', getJson.data.token as string);
+      store.put('userUuid', getJson.data.user.uuid as string);
+      AppStorage.SetOrCreate<string>('userToken', getJson.data.token);
+      AppStorage.SetOrCreate<string>('userUuid', getJson.data.user.uuid);
+    })
+    AppStorage.Delete('loginErrorMessage');
+    return true;
+  }
 }

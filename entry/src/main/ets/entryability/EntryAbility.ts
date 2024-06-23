@@ -48,11 +48,24 @@ export default class EntryAbility extends UIAbility {
       } catch (e) {
         console.error(`Failed to get serverUrl. Code:${e.code},message:${e.message}`);
       }
+
+      try {
+        store.get('userToken', (_, value) => {
+          AppStorage.SetOrCreate<string>('userToken', value as string);
+          hilog.info(0x5000, 'XiaoMainLog', '获取token：%{public}s', AppStorage.Get<string>('userToken'));
+        });
+        store.get('userUuid', (_, value) => {
+          AppStorage.SetOrCreate<string>('userUuid', value as string);
+          hilog.info(0x5000, 'XiaoMainLog', '获取用户uuid：%{public}s', AppStorage.Get<string>('userUuid'));
+        })
+      } catch (e) {
+        console.error(`Failed to get token. Code:${e.code},message:${e.message}`);
+      }
     });
 
     setTimeout(() => {
       // 地址跳转
-      if (AppStorage.Get<Boolean>('userHasLogin')) {
+      if (AppStorage.Get<Boolean>('userToken')) {
         hilog.info(0x5000, 'XiaoMainLog', '用户已登录，加载主页')
         windowStage.loadContent('pages/HomePage');
       } else {
